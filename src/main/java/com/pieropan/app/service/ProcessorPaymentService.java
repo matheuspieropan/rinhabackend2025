@@ -53,13 +53,16 @@ public class ProcessorPaymentService {
     }
 
     private HttpRequest buildRequest(PaymentRequest paymentRequest) throws URISyntaxException {
+        String endpoint = Global.payment_default_ok ? "http://payment-processor-default:8080/payments"
+                : "http://payment-processor-fallback:8080/payments";
+
         PaymentProcessorRequest paymentProcessorRequest = new PaymentProcessorRequest(
                 paymentRequest.correlationId(),
                 paymentRequest.amount(),
                 Instant.now());
 
         return HttpRequest.newBuilder()
-                .uri(new URI("http://localhost:8001/payments"))
+                .uri(new URI(endpoint))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonb.toJson(paymentProcessorRequest)))
                 .build();
