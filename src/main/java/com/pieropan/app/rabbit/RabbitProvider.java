@@ -13,6 +13,8 @@ import jakarta.inject.Inject;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import java.io.IOException;
+
 @ApplicationScoped
 public class RabbitProvider {
 
@@ -29,13 +31,15 @@ public class RabbitProvider {
     public void init() {
         try {
             ConnectionFactory factory = new ConnectionFactory();
-            factory.setHost("localhost");
+            factory.setHost("rabbitmq");
             factory.setUsername("guest");
             factory.setPassword("guest");
             factory.setPort(5672);
 
             connection = factory.newConnection();
             channel = connection.createChannel();
+
+            createInfra();
 
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String body = new String(delivery.getBody());
@@ -53,6 +57,14 @@ public class RabbitProvider {
         } catch (Exception e) {
             throw new RuntimeException("Erro ao conectar no RabbitMQ: " + e.getMessage(), e);
         }
+    }
+
+    private void createInfra() throws IOException {
+        channel.exchangeDeclare("processor-payment.ex", "direct", true);
+
+        channel.queueDeclare("processor-payment.queue", true, false, false, null);
+
+        channel.queueBind("processor-payment.queue", "processor-payment.ex", "");
     }
 
     @PreDestroy
