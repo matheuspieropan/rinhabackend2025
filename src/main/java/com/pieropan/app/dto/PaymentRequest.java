@@ -1,4 +1,6 @@
 package com.pieropan.app.dto;
 
-public record PaymentRequest(String correlationId, Double amount) {
+import java.math.BigDecimal;
+
+public record PaymentRequest(String correlationId, BigDecimal amount) {
 }

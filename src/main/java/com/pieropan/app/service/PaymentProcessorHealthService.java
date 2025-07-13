@@ -16,24 +16,49 @@ public class PaymentProcessorHealthService {
 
     private final Jsonb jsonb = JsonbBuilder.create();
 
-    public void processPayment() {
+    public static boolean PAYMENT_PROCESSOR_DEFAULT_OK = true;
+
+    public static int TIMEOUT = 5000;
+
+    public void processPaymentDefault() {
         try (HttpClient httpClient = HttpClient.newHttpClient()) {
 
-            HttpRequest request = buildRequest();
+            HttpRequest request = buildRequest("http://payment-processor-default:8080/payments/service-health");
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             PaymentProcessorHealthResponse healthResponse = jsonb.fromJson(response.body(), PaymentProcessorHealthResponse.class);
 
-            Global.payment_default_ok = !healthResponse.failing();
+            System.out.println("default" + healthResponse.toString());
+            PAYMENT_PROCESSOR_DEFAULT_OK = !healthResponse.failing();
+            TIMEOUT = healthResponse.minResponseTime();
 
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            System.out.println(e.getMessage());
+            PAYMENT_PROCESSOR_DEFAULT_OK = false;
+            processPaymentFallback();
         }
     }
 
-    private HttpRequest buildRequest() throws URISyntaxException {
+    public void processPaymentFallback() {
+        try (HttpClient httpClient = HttpClient.newHttpClient()) {
+
+            HttpRequest request = buildRequest("http://payment-processor-fallback:8080/payments/service-health");
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            PaymentProcessorHealthResponse healthResponse = jsonb.fromJson(response.body(), PaymentProcessorHealthResponse.class);
+
+            System.out.println("fallback" + healthResponse.toString());
+            if (!PAYMENT_PROCESSOR_DEFAULT_OK) {
+                TIMEOUT = healthResponse.minResponseTime();
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private HttpRequest buildRequest(String endpoint) throws URISyntaxException {
 
         return HttpRequest.newBuilder()
-                .uri(new URI("http://payment-processor-default:8080/payments/service-health"))
+                .uri(new URI(endpoint))
                 .header("Content-Type", "application/json")
                 .GET()
                 .build();

@@ -1,4 +1,6 @@
 package com.pieropan.app.dto;
 
-public record PaymentProcessor(int totalRequests, Double totalAmount) {
+import java.math.BigDecimal;
+
+public record PaymentProcessor(int totalRequests, BigDecimal totalAmount) {
 }

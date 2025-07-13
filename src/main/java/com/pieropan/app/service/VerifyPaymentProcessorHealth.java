@@ -13,7 +13,12 @@ public class VerifyPaymentProcessorHealth {
     private PaymentProcessorHealthService paymentProcessorHealthService;
 
     @Schedule(hour = "*", minute = "*", second = "*/5", persistent = false)
-    public void executar() {
-        paymentProcessorHealthService.processPayment();
+    public void processPaymentDefault() {
+        paymentProcessorHealthService.processPaymentDefault();
+    }
+
+    @Schedule(hour = "*", minute = "*", second = "*/5", persistent = false)
+    public void processPaymentFallback() {
+        paymentProcessorHealthService.processPaymentFallback();
     }
 }
