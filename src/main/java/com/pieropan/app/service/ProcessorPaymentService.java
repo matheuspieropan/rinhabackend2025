@@ -4,6 +4,8 @@ import com.mongodb.client.MongoCollection;
 import com.pieropan.app.dto.PaymentProcessorRequest;
 import com.pieropan.app.dto.PaymentRequest;
 import com.pieropan.app.mongo.MongoProvider;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.json.bind.Jsonb;
@@ -17,29 +19,61 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.function.Supplier;
 
 @ApplicationScoped
 public class ProcessorPaymentService {
 
     @Inject
-    MongoProvider mongoProvider;
+    private MongoProvider mongoProvider;
+
+    @Inject
+    private CircuitBreaker circuitBreaker;
 
     private final Jsonb jsonb = JsonbBuilder.create();
 
+    private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build();
+
     public void processPayment(PaymentRequest paymentRequest) {
-        boolean paymentProcessorDefault = PaymentProcessorHealthService.PAYMENT_PROCESSOR_DEFAULT_OK;
-        try (HttpClient httpClient = HttpClient.newHttpClient()) {
+        Instant createdAt = Instant.now();
 
-            Instant createdAt = Instant.now();
-            HttpRequest request = buildRequest(paymentRequest, paymentProcessorDefault, createdAt);
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                saveMongoDB(paymentRequest, paymentProcessorDefault, createdAt);
+        Supplier<Boolean> meuSupplier = () -> {
+            try {
+                HttpRequest request = buildRequest(paymentRequest, true, createdAt);
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    saveMongoDB(paymentRequest, true, createdAt);
+                    return true;
+                }
+                return false;
+            } catch (Exception e) {
+                System.out.println("Erro no processador default: " + e.getMessage());
+                throw new RuntimeException("Erro no processador default: " + e.getMessage(), e);
             }
+        };
 
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+        Supplier<Boolean> supplier = circuitBreaker.decorateSupplier(meuSupplier);
+
+        try {
+            supplier.get();
+        } catch (CallNotPermittedException ex) {
+
+            try {
+                HttpRequest fallbackRequest = buildRequest(paymentRequest, false, createdAt);
+                HttpResponse<String> fallbackResponse = httpClient.send(fallbackRequest, HttpResponse.BodyHandlers.ofString());
+
+                if (fallbackResponse.statusCode() == 200) {
+                    saveMongoDB(paymentRequest, false, createdAt);
+                } else {
+                    processPayment(paymentRequest);
+                }
+            } catch (Exception fallbackEx) {
+                System.out.println("fallbackEx: " + fallbackEx.getMessage());
+                processPayment(paymentRequest);
+            }
+        } catch (Exception ex) {
+            System.out.println("ex do supplier" + ex.getMessage());
+            processPayment(paymentRequest);
         }
     }
 
@@ -72,7 +106,6 @@ public class ProcessorPaymentService {
 
         return HttpRequest.newBuilder()
                 .uri(new URI(endpoint))
-                .timeout(Duration.ofMillis(PaymentProcessorHealthService.TIMEOUT + 200))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonb.toJson(paymentProcessorRequest)))
                 .build();

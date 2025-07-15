@@ -8,28 +8,39 @@ services:
     depends_on:
       - api1
       - api2
-    deploy:
-      resources:
-        limits:
-          cpus: "0.05"
-          memory: "15MB"
     ports:
       - "9999:9999"
     networks:
       - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"       # Pequeno consumo para nginx
+          memory: "20MB"
 
   api1: &api
     image: matheuspieropan/rinhabackend2025:3.0
-    volumes:
-      - ./scripts/standalone.xml:/opt/jboss/wildfly/standalone/configuration/standalone.xml
+    environment:
+      - JAVA_OPTS=-Xms120m -Xmx120m -Djava.net.preferIPv4Stack=true
     hostname: api1
     networks:
       - backend
       - payment-processor
+    deploy:
+      resources:
+        limits:
+          cpus: "0.45"       # 0.45 CPU para cada api
+          memory: "130MB"    # 100MB para cada api
 
   api2:
     <<: *api
     hostname: api2
+    deploy:
+      resources:
+        limits:
+          cpus: "0.45"
+          memory: "130MB"
+
   mongodb:
     image: mongo:7.0
     container_name: mongodb
