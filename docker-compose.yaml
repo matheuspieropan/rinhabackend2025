@@ -19,7 +19,7 @@ services:
       - backend
 
   api1: &api
-    image: matheuspieropan/rinhabackend2025:1.0
+    image: matheuspieropan/rinhabackend2025:3.0
     volumes:
       - ./scripts/standalone.xml:/opt/jboss/wildfly/standalone/configuration/standalone.xml
     hostname: api1
