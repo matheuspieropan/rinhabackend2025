@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
 
 public class PaymentServlet extends HttpServlet {
 
-    private final ExecutorService virtualExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService virtualExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     private final ProcessorPaymentService processorPaymentService = new ProcessorPaymentService();
 
