@@ -1,16 +1,17 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 COPY . /app
+
 WORKDIR /app
 
 RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:21-jre AS runtime
 
-COPY wildfly-slim /opt/wildfly
+WORKDIR /app
 
-COPY --from=build /app/target/*.war /opt/wildfly/standalone/deployments/app.war
+COPY --from=build /app/target/undertow-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
 
 EXPOSE 8080
 
-CMD ["/opt/wildfly/bin/standalone.sh", "-b", "0.0.0.0"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
