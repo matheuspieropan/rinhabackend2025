@@ -24,20 +24,20 @@ services:
     networks:
       - backend
       - payment-processor
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: "120M"
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0.5"
+#          memory: "120M"
 
   api2:
     <<: *api
     hostname: api2
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: "120M"
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0.5"
+#          memory: "120M"
 
   mongodb:
     image: mongo:7.0
