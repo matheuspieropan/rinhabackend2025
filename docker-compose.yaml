@@ -16,7 +16,7 @@ services:
       resources:
         limits:
           cpus: "0.05"
-          memory: "20MB"
+          memory: "20M"
 
   api1: &api
     image: matheuspieropan/rinhabackend2025:undertow
@@ -24,10 +24,20 @@ services:
     networks:
       - backend
       - payment-processor
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "120M"
 
   api2:
     <<: *api
     hostname: api2
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "120M"
 
   mongodb:
     image: mongo:7.0
@@ -40,6 +50,11 @@ services:
       - "27017:27017"
     networks:
       - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.45"
+          memory: "90M"
 
 networks:
   backend:
