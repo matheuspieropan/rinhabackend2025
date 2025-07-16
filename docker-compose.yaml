@@ -50,11 +50,11 @@ services:
       - "27017:27017"
     networks:
       - backend
-    deploy:
-      resources:
-        limits:
-          cpus: "0.45"
-          memory: "90M"
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0.45"
+#          memory: "90M"
 
 networks:
   backend:
