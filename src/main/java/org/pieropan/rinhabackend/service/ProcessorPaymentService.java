@@ -126,9 +126,13 @@ public class ProcessorPaymentService {
     private HttpRequest buildRequest(PaymentRequest paymentRequest, boolean paymentProcessorDefault, Instant createdAt)
             throws URISyntaxException, JsonProcessingException {
 
-        String endpoint = paymentProcessorDefault
-                ? "http://payment-processor-default:8080/payments"
-                : "http://payment-processor-fallback:8080/payments";
+          String endpoint = paymentProcessorDefault
+                    ? "http://payment-processor-default:8080/payments"
+                    : "http://payment-processor-fallback:8080/payments";
+
+//        String endpoint = paymentProcessorDefault
+//                ? "http://localhost:8001/payments"
+//                : "http://localhost:8002/payments";
 
         PaymentProcessorRequest paymentProcessorRequest = new PaymentProcessorRequest(
                 paymentRequest.correlationId(),

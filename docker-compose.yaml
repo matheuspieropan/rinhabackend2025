@@ -19,7 +19,7 @@ services:
           memory: "20M"
 
   api1: &api
-    image: matheuspieropan/rinhabackend2025:undertow
+    image: matheuspieropan/rinhabackend2025:undertowtunning
     hostname: api1
     networks:
       - backend

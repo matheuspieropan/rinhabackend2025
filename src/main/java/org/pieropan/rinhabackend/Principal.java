@@ -11,22 +11,26 @@ import org.pieropan.rinhabackend.servlet.PaymentSummaryServlet;
 import static io.undertow.servlet.Servlets.defaultContainer;
 import static io.undertow.servlet.Servlets.deployment;
 import static io.undertow.servlet.Servlets.servlet;
+import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 
 public class Principal {
 
     public static void main(String[] args) throws ServletException {
-        DeploymentInfo servletBuilder = deployment()
+        DeploymentInfo deploymentInfo = deployment()
                 .setClassLoader(Principal.class.getClassLoader())
                 .setContextPath("/")
                 .setDeploymentName("myapp.war")
                 .addServlets(
                         servlet("PaymentServlet", PaymentServlet.class)
-                                .addMapping("/payments"),
+                                .addMapping("/payments").setAsyncSupported(true),
                         servlet("PaymentSummaryServlet", PaymentSummaryServlet.class)
-                                .addMapping("/payments-summary")
+                                .addMapping("/payments-summary").setAsyncSupported(true)
                 );
 
-        DeploymentManager manager = defaultContainer().addDeployment(servletBuilder);
+        deploymentInfo.setExecutor(newVirtualThreadPerTaskExecutor());
+        deploymentInfo.setAsyncExecutor(newVirtualThreadPerTaskExecutor());
+
+        DeploymentManager manager = defaultContainer().addDeployment(deploymentInfo);
         manager.deploy();
 
         PathHandler path = new PathHandler(manager.start());
