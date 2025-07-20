@@ -10,11 +10,10 @@ services:
       - "9999:9999"
     networks:
       - backend
-#  matheuspieropan/rinhabackend2025:graalvm
 
 
   api1: &api
-    image: gabxdevv/rinha-backend-2025-java:0.0.1-SNAPSHOT
+    image: matheuspieropan/rinha2025-graalvm:0.0.1-SNAPSHOT
     hostname: api1
     networks:
       - backend

@@ -58,7 +58,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <image>
-                        <name>gabxdevv/rinha-backend-2025-java:${project.version}</name>
+                        <name>matheuspieropan/${artifactId}-graalvm:${project.version}</name>
                         <builder>paketobuildpacks/builder-jammy-java-tiny:latest</builder>
                         <env>
                             <BP_NATIVE_IMAGE>true</BP_NATIVE_IMAGE>
