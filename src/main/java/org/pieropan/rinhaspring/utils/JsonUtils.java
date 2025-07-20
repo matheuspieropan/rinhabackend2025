@@ -10,10 +10,10 @@ public class JsonMapper {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public String toJson(PagamentoProcessorRequest pagamentoProcessorRequest) {
+    public String toJson(Object pagamentoProcessorRequest) {
         try {
-            objectMapper.writeValueAsString(pagamentoProcessorRequest);
-        } catch (JsonProcessingException e) {
+            return objectMapper.writeValueAsString(pagamentoProcessorRequest);
+        } catch (Exception e) {
             throw new RuntimeException("Error deserializing PagamentoProcessorRequest");
         }
     }
