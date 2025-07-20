@@ -44,11 +44,7 @@ public class PaymentProcessorClient {
             return true;
         }
 
-        if (callApiFallBack(request.getJson())) {
-            return true;
-        }
-
-        return false;
+        return callApiFallBack(request.getJson());
     }
 
     private boolean sendPaymentDefaultWithRetry(String json) {
