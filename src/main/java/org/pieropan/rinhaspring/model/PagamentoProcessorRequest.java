@@ -1,8 +1,5 @@
 package org.pieropan.rinhaspring.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -10,17 +7,15 @@ public class PagamentoProcessorRequest {
 
     private String correlationId;
     private BigDecimal amount;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, timezone = "UTC")
     private Instant requestedAt;
-    @JsonIgnore
+
     private String json;
-    @JsonIgnore
     private boolean isDefault;
 
-    public PagamentoProcessorRequest(String correlationId, BigDecimal amount, Instant requestedAt) {
+    public PagamentoProcessorRequest(String correlationId) {
         this.correlationId = correlationId;
-        this.amount = amount;
-        this.requestedAt = requestedAt;
+        this.amount = new BigDecimal("19.90");
+        this.requestedAt = Instant.now();
         this.isDefault = false;
     }
 

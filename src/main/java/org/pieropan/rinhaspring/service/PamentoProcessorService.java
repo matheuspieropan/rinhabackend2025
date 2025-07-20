@@ -1,9 +1,11 @@
 package org.pieropan.rinhaspring.service;
 
+import jakarta.annotation.PostConstruct;
 import org.pieropan.rinhaspring.client.PaymentProcessorClient;
 import org.pieropan.rinhaspring.document.PagamentoDocument;
 import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
 import org.pieropan.rinhaspring.repository.PagamentoRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -11,18 +13,24 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Service
 public class PamentoProcessorService {
 
-    private final LinkedBlockingQueue<PagamentoProcessorRequest> pagamentosPendentes = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<PagamentoProcessorRequest> pagamentosPendentes = new LinkedBlockingQueue<>(13_1000);
 
     private final PagamentoRepository pagamentoRepository;
 
     private final PaymentProcessorClient paymentProcessorClient;
 
+    @Value("${rinha.worker.pool-size}")
+    private int workerPoolSize;
+
     public PamentoProcessorService(PagamentoRepository pagamentoRepository, PaymentProcessorClient paymentProcessorClient) {
 
         this.pagamentoRepository = pagamentoRepository;
         this.paymentProcessorClient = paymentProcessorClient;
+    }
 
-        for (int i = 0; i < 15; i++) {
+    @PostConstruct
+    public void start() {
+        for (int i = 0; i < workerPoolSize; i++) {
             Thread.startVirtualThread(this::runWorker);
         }
     }

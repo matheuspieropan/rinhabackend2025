@@ -1,16 +1,12 @@
 package org.pieropan.rinhaspring.controller;
 
 import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
-import org.pieropan.rinhaspring.model.PagamentoRequest;
 import org.pieropan.rinhaspring.service.PamentoProcessorService;
-import org.pieropan.rinhaspring.utils.JsonMapper;
+import org.pieropan.rinhaspring.utils.JsonUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 @RestController
 @RequestMapping("/payments")
@@ -18,20 +14,20 @@ public class PamentoProcessorController {
 
     private final PamentoProcessorService pamentoProcessorService;
 
-    private final JsonMapper jsonMapper;
+    private final JsonUtils jsonUtils;
 
-    public PamentoProcessorController(PamentoProcessorService pamentoProcessorService, JsonMapper jsonMapper) {
+    public PamentoProcessorController(PamentoProcessorService pamentoProcessorService, JsonUtils jsonUtils) {
         this.pamentoProcessorService = pamentoProcessorService;
-        this.jsonMapper = jsonMapper;
+        this.jsonUtils = jsonUtils;
     }
 
     @PostMapping
-    public void pagar(@RequestBody PagamentoRequest pagamentoRequest) {
+    public void pagar(@RequestBody String pagamentoRequest) {
 
         PagamentoProcessorRequest pagamentoProcessorRequest = new PagamentoProcessorRequest(
-                pagamentoRequest.correlationId(), pagamentoRequest.amount(), Instant.now().truncatedTo(ChronoUnit.SECONDS));
+                jsonUtils.extractUUIDFromRequest(pagamentoRequest));
 
-        pagamentoProcessorRequest.setJson(jsonMapper.toJson(pagamentoProcessorRequest));
+        pagamentoProcessorRequest.setJson(jsonUtils.buildPaymentDTO(pagamentoProcessorRequest));
 
         pamentoProcessorService.adicionaNaFila(pagamentoProcessorRequest);
     }
