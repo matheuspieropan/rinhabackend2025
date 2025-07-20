@@ -1,6 +1,8 @@
 package org.pieropan.rinhaspring;
 
 import org.bson.Document;
+import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @SpringBootApplication
+@RegisterReflectionForBinding({PagamentoProcessorRequest.class})
 public class RinhaSpringApplication implements CommandLineRunner {
 
     private final MongoTemplate mongoTemplate;
