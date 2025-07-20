@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.pieropan</groupId>
-    <artifactId>rinha2025spring</artifactId>
+    <artifactId>rinha2025</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>rinha2025</name>
     <description>Implementação da rinha de backend usando Spring com GraalVM</description>

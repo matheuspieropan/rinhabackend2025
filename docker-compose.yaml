@@ -14,7 +14,7 @@ services:
       - backend
 
   api1: &api
-    image: matheuspieropan/rinhabackend2025:semgraalvm
+    image: matheuspieropan/rinhabackend2025:graalvm
     hostname: api1
     networks:
       - backend
