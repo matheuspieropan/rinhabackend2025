@@ -1,10 +1,11 @@
 package org.pieropan.rinhaspring.service;
 
-import org.pieropan.rinhaspring.config.PagamentoProcessorManualClient;
+import jakarta.annotation.PostConstruct;
+import org.pieropan.rinhaspring.client.PaymentProcessorClient;
 import org.pieropan.rinhaspring.document.PagamentoDocument;
 import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
 import org.pieropan.rinhaspring.repository.PagamentoRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -12,23 +13,24 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Service
 public class PamentoProcessorService {
 
+    private final LinkedBlockingQueue<PagamentoProcessorRequest> pagamentosPendentes = new LinkedBlockingQueue<>(13_1000);
+
     private final PagamentoRepository pagamentoRepository;
 
-    private final PagamentoProcessorManualClient pagamentoProcessorDefault;
+    private final PaymentProcessorClient paymentProcessorClient;
 
-    private final PagamentoProcessorManualClient pagamentoProcessorFallback;
+    @Value("${rinha.worker.pool-size}")
+    private int workerPoolSize;
 
-    private final LinkedBlockingQueue<PagamentoProcessorRequest> pagamentosPendentes = new LinkedBlockingQueue<>();
-
-    public PamentoProcessorService(PagamentoRepository pagamentoRepository,
-                                   @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault,
-                                   @Qualifier("pagamentoProcessorFallbackClient") PagamentoProcessorManualClient pagamentoProcessorFallback) {
+    public PamentoProcessorService(PagamentoRepository pagamentoRepository, PaymentProcessorClient paymentProcessorClient) {
 
         this.pagamentoRepository = pagamentoRepository;
-        this.pagamentoProcessorDefault = pagamentoProcessorDefault;
-        this.pagamentoProcessorFallback = pagamentoProcessorFallback;
+        this.paymentProcessorClient = paymentProcessorClient;
+    }
 
-        for (int i = 0; i < 15; i++) {
+    @PostConstruct
+    public void start() {
+        for (int i = 0; i < workerPoolSize; i++) {
             Thread.startVirtualThread(this::runWorker);
         }
     }
@@ -41,8 +43,9 @@ public class PamentoProcessorService {
     }
 
     private void processPayment(PagamentoProcessorRequest pagamentoRequest) {
-        boolean sucesso = pagar(pagamentoRequest);
+        boolean sucesso = paymentProcessorClient.sendPayment(pagamentoRequest);
         if (sucesso) {
+            salvarDocument(pagamentoRequest, pagamentoRequest.isDefault());
             return;
         }
         adicionaNaFila(pagamentoRequest);
@@ -60,48 +63,13 @@ public class PamentoProcessorService {
         pagamentosPendentes.offer(pagamentoRequest);
     }
 
-    public boolean pagar(PagamentoProcessorRequest pagamentoProcessorRequest) {
-        try {
-            for (int tentativa = 0; tentativa < 3; tentativa++) {
-
-                boolean sucesso = enviarRequisicao(pagamentoProcessorRequest, true);
-                if (sucesso) {
-                    salvarDocument(pagamentoProcessorRequest, true);
-                    return true;
-                }
-
-                if (enviarRequisicao(pagamentoProcessorRequest, false)) {
-                    salvarDocument(pagamentoProcessorRequest, false);
-                    return true;
-                }
-            }
-
-            return false;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    public boolean enviarRequisicao(PagamentoProcessorRequest pagamentoProcessorRequest, boolean processadorDefault) {
-
-        try {
-            if (processadorDefault) {
-                return pagamentoProcessorDefault.processaPagamento(pagamentoProcessorRequest);
-            } else {
-                return pagamentoProcessorFallback.processaPagamento(pagamentoProcessorRequest);
-            }
-        } catch (Exception ex) {
-            return false;
-        }
-    }
-
     public void salvarDocument(PagamentoProcessorRequest pagamentoProcessorRequest, boolean isDefault) {
         PagamentoDocument doc = new PagamentoDocument();
 
-        doc.setCorrelationId(pagamentoProcessorRequest.correlationId());
-        doc.setAmount(pagamentoProcessorRequest.amount());
+        doc.setCorrelationId(pagamentoProcessorRequest.getCorrelationId());
+        doc.setAmount(pagamentoProcessorRequest.getAmount());
         doc.setPaymentProcessorDefault(isDefault);
-        doc.setCreatedAt(pagamentoProcessorRequest.requestedAt());
+        doc.setCreatedAt(pagamentoProcessorRequest.getRequestedAt());
 
         pagamentoRepository.save(doc);
     }

@@ -1,8 +1,6 @@
-version: "3.9"
-
 services:
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     volumes:
       - ./scripts/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
@@ -13,20 +11,25 @@ services:
     networks:
       - backend
 
+
   api1: &api
-    image: matheuspieropan/rinhabackend2025:graalvm
+    image: matheuspieropan/rinha2025-graalvm:0.0.1-SNAPSHOT
     hostname: api1
     networks:
       - backend
       - payment-processor
-    ports:
-      - "8080:8080"
+    environment:
+      TIMEOUT_DEFAULT: 180
+      TIMEOUT_FALLBACK: 95
+      RETRY_API_DEFAULT: 14
+      PAYMENT_PROCESSOR_URL_DEFAULT: http://payment-processor-default:8080/payments
+      PAYMENT_PROCESSOR_URL_FALLBACK: http://payment-processor-fallback:8080/payments
+      WORKER_POOL_SIZE: 21
 
   api2:
     <<: *api
     hostname: api2
-    ports:
-      - "8081:8080"
+
 
   mongodb:
     image: mongo:7.0
