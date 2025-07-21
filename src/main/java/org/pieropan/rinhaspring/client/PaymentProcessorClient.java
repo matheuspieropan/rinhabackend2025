@@ -38,7 +38,7 @@ public class PaymentProcessorClient {
 
     public boolean sendPayment(PagamentoProcessorRequest request) {
 
-        if (callPaymentDefaultWithRetry(request.getJson())) {
+        if (callApiDefaultWithRetry(request.getJson())) {
             request.setDefault(true);
 
             return true;
@@ -47,7 +47,7 @@ public class PaymentProcessorClient {
         return callApiFallBack(request.getJson());
     }
 
-    private boolean callPaymentDefaultWithRetry(String json) {
+    private boolean callApiDefaultWithRetry(String json) {
         var request = buildRequest(json, uriDefault, timeoutApiDefault);
 
         for (int i = 1; i <= retryApiDefault; i++) {
