@@ -44,7 +44,6 @@ public class HttpClientConfig {
     @Bean
     public java.net.http.HttpClient paymentClient() {
         return java.net.http.HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(60))
                 .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
                 .version(java.net.http.HttpClient.Version.HTTP_1_1)
                 .executor(Runnable::run)
