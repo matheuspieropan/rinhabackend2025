@@ -38,7 +38,7 @@ public class PaymentProcessorClient {
 
     public boolean sendPayment(PagamentoProcessorRequest request) {
 
-        if (sendPaymentDefaultWithRetry(request.getJson())) {
+        if (callPaymentDefaultWithRetry(request.getJson())) {
             request.setDefault(true);
 
             return true;
@@ -47,10 +47,11 @@ public class PaymentProcessorClient {
         return callApiFallBack(request.getJson());
     }
 
-    private boolean sendPaymentDefaultWithRetry(String json) {
-        for (int i = 1; i <= retryApiDefault; i++) {
-            if (callApiDefault(json)) {
+    private boolean callPaymentDefaultWithRetry(String json) {
+        var request = buildRequest(json, uriDefault, timeoutApiDefault);
 
+        for (int i = 1; i <= retryApiDefault; i++) {
+            if (sendRequest(request)) {
                 return true;
             }
         }
@@ -60,12 +61,6 @@ public class PaymentProcessorClient {
 
     private boolean callApiFallBack(String json) {
         var request = buildRequest(json, uriFallback, timeoutApiFallback);
-
-        return sendRequest(request);
-    }
-
-    private boolean callApiDefault(String json) {
-        var request = buildRequest(json, uriDefault, timeoutApiDefault);
 
         return sendRequest(request);
     }
