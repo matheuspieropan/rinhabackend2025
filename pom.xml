@@ -74,7 +74,7 @@
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <configuration>
                             <image>
-                                <name>matheuspieropan/rinhabackend2025:2.0</name>
+                                <name>matheuspieropan/rinhabackend2025:mongo</name>
                                 <builder>paketobuildpacks/builder-jammy-java-tiny:latest</builder>
                                 <env>
                                     <BP_NATIVE_IMAGE>true</BP_NATIVE_IMAGE>

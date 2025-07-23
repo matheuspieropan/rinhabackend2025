@@ -19,7 +19,7 @@ services:
           memory: "30MB"
 
   api1: &api
-    image: matheuspieropan/rinhabackend2025:2.0
+    image: matheuspieropan/rinhabackend2025:mongo
     depends_on:
       mongodb:
         condition: service_healthy
