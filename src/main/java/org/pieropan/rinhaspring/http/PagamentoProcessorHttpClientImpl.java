@@ -1,5 +1,6 @@
 package org.pieropan.rinhaspring.http;
 
+import org.pieropan.rinhaspring.model.HealthResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
@@ -8,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 import static java.net.http.HttpRequest.BodyPublishers.ofString;
 
@@ -24,11 +26,49 @@ public class PagamentoProcessorHttpClientImpl implements PagamentoProcessorManua
     @Override
     public boolean processaPagamento(String pagamento) throws IOException, InterruptedException {
         HttpRequest httpRequest = HttpRequest.newBuilder().
+                timeout(Duration.ofMillis(500)).
                 uri(URI.create(baseUrl + "/payments")).POST(ofString(pagamento)).
                 header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).
                 build();
 
         HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            System.out.println("Status code: " + response.statusCode());
+        }
         return response.statusCode() == 200;
+    }
+
+    @Override
+    public HealthResponse healthCheck() throws IOException, InterruptedException {
+        HttpRequest httpRequest = HttpRequest.newBuilder().
+                uri(URI.create(baseUrl + "/payments/service-health")).
+                GET().
+                header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).
+                build();
+
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        String body = response.body();
+
+        return getHealthResponse(body);
+    }
+
+    private HealthResponse getHealthResponse(String body) {
+        String json = body.replaceAll("[{}\\s\"]", "");
+
+        String[] pairs = json.split(",");
+
+        boolean failing = false;
+        int minResponseTime = 0;
+
+        for (String pair : pairs) {
+            String[] kv = pair.split(":");
+            if (kv[0].equals("failing")) {
+                failing = Boolean.parseBoolean(kv[1]);
+            } else if (kv[0].equals("minResponseTime")) {
+                minResponseTime = Integer.parseInt(kv[1]);
+            }
+        }
+
+        return new HealthResponse(failing, minResponseTime);
     }
 }

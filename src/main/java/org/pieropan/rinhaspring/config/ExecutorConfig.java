@@ -13,7 +13,7 @@ public class ExecutorConfig {
 
     @Bean //quanto mais aumenta o número de threads + sobe a média do response time e + inconcistencia
     public ExecutorService executorService() {
-        return new ThreadPoolExecutor(15, 15, 60, TimeUnit.SECONDS,
+        return new ThreadPoolExecutor(30, 30, 60, TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(2000), Thread.ofVirtual().factory());
     }
 }

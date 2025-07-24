@@ -1,19 +1,20 @@
 package org.pieropan.rinhaspring.service;
 
 import org.pieropan.rinhaspring.http.PagamentoProcessorManualClient;
+import org.pieropan.rinhaspring.model.MelhorOpcao;
 import org.pieropan.rinhaspring.model.PagamentoProcessorCompleto;
 import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.pieropan.rinhaspring.job.PagamentoHelthCheckJob.melhorOpcao;
 
 @Service
 public class PamentoProcessorService {
-
-    private static final Logger log = LoggerFactory.getLogger(PamentoProcessorService.class);
 
     private final PagamentoComRedisService pagamentoComRedisService;
 
@@ -21,8 +22,11 @@ public class PamentoProcessorService {
 
     private final PagamentoProcessorManualClient pagamentoProcessorFallback;
 
-    public PamentoProcessorService(PagamentoComRedisService pagamentoComRedisService, @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault, @Qualifier("pagamentoProcessorFallbackClient") PagamentoProcessorManualClient pagamentoProcessorFallback) {
+    public static BlockingQueue<PagamentoProcessorCompleto> pagamentosPendentes = new LinkedBlockingQueue<>();
 
+    public PamentoProcessorService(PagamentoComRedisService pagamentoComRedisService,
+                                   @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault,
+                                   @Qualifier("pagamentoProcessorFallbackClient") PagamentoProcessorManualClient pagamentoProcessorFallback) {
         this.pagamentoComRedisService = pagamentoComRedisService;
         this.pagamentoProcessorDefault = pagamentoProcessorDefault;
         this.pagamentoProcessorFallback = pagamentoProcessorFallback;
@@ -43,21 +47,22 @@ public class PamentoProcessorService {
     }
 
     public void pagar(PagamentoProcessorCompleto completo) {
+        MelhorOpcao melhorOpcaoAtual = melhorOpcao;
+
+        if (melhorOpcaoAtual == null) {
+            pagamentosPendentes.offer(completo);
+            return;
+        }
 
         try {
-            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson(), true);
+            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson(), melhorOpcaoAtual.processadorDefault());
             if (sucesso) {
-                pagamentoComRedisService.salvarPagamento(completo, true);
-                return;
-            }
-
-            if (enviarRequisicao(completo.pagamentoEmJson(), false)) {
-                pagamentoComRedisService.salvarPagamento(completo, false);
+                pagamentoComRedisService.salvarPagamento(completo, melhorOpcaoAtual.processadorDefault());
                 return;
             }
         } catch (Exception ignored) {
         }
-        log.info("Pagamento {} não processado", completo.pagamentoProcessorRequest().correlationId());
+        pagamentosPendentes.offer(completo);
     }
 
     public boolean enviarRequisicao(String pagamento, boolean processadorDefault) throws IOException, InterruptedException {
