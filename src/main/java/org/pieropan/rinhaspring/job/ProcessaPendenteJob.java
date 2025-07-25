@@ -31,7 +31,7 @@ public class ProcessaPendenteJob {
             return;
         }
 
-        int size = Math.min(pagamentosPendentes.size(), 15);
+        int size = Math.min(pagamentosPendentes.size(), 20);
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             futures.add(pagarAsync());

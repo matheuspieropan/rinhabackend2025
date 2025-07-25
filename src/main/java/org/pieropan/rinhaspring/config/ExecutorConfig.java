@@ -14,7 +14,7 @@ public class ExecutorConfig {
     @Bean
     public ExecutorService executorService() {
         return new ThreadPoolExecutor(10,
-                15,
+                20,
                 60,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
