@@ -13,8 +13,8 @@ public class ExecutorConfig {
 
     @Bean
     public ExecutorService executorService() {
-        return new ThreadPoolExecutor(20,
-                70,
+        return new ThreadPoolExecutor(10,
+                15,
                 60,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
