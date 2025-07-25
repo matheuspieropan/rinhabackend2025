@@ -26,8 +26,11 @@ public class PagamentoSummaryService {
     }
 
     private PagamentoProcessor processarResumo(String key, Instant from, Instant to) {
+        double minScore = (from != null) ? from.toEpochMilli() : Double.NEGATIVE_INFINITY;
+        double maxScore = (to != null) ? to.toEpochMilli() : Double.POSITIVE_INFINITY;
+
         Set<String> registros = redisTemplate.opsForZSet()
-                .rangeByScore(key, from.toEpochMilli(), to.toEpochMilli());
+                .rangeByScore(key, minScore, maxScore);
 
         if (registros == null || registros.isEmpty()) {
             return new PagamentoProcessor(0, BigDecimal.ZERO);
