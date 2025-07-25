@@ -22,12 +22,8 @@ public class PamentoProcessorController {
     private final PamentoProcessorService pamentoProcessorService;
 
     public PamentoProcessorController(PagamentoComRedisService pagamentoComRedisService,
-                                      @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault,
-                                      @Qualifier("pagamentoProcessorFallbackClient") PagamentoProcessorManualClient pagamentoProcessorFallback) {
-        this.pamentoProcessorService = new PamentoProcessorService(
-                pagamentoComRedisService,
-                pagamentoProcessorDefault,
-                pagamentoProcessorFallback);
+                                      @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault) {
+        this.pamentoProcessorService = new PamentoProcessorService(pagamentoComRedisService, pagamentoProcessorDefault);
     }
 
     @PostMapping

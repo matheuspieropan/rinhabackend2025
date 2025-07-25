@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import static org.pieropan.rinhaspring.job.PagamentoHelthCheckJob.melhorOpcao;
+import static org.pieropan.rinhaspring.job.PagamentoHelthCheckJob.procesadorDisponivel;
 import static org.pieropan.rinhaspring.service.PamentoProcessorService.pagamentosPendentes;
 
 @Configuration
@@ -27,7 +27,7 @@ public class ProcessaPendenteJob {
 
     @Scheduled(initialDelay = 100, fixedDelay = 15)
     public void processa() {
-        if (pagamentosPendentes.isEmpty() || melhorOpcao == null) {
+        if (pagamentosPendentes.isEmpty() || !procesadorDisponivel) {
             return;
         }
 

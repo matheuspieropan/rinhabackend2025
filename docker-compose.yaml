@@ -32,24 +32,27 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.55"
-          memory: "90MB"
+          cpus: "0.6"
+          memory: "140MB"
 
   api2:
     <<: *api
     hostname: api2
     ports:
       - "8081:8080"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.55"
-          memory: "90MB"
 
   redis:
     image: redis:7.2-alpine
     container_name: redis
-    command: [ "redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru" ]
+    command: [
+      "redis-server",
+      "--save", "",
+      "--appendonly", "no",
+      "--databases", "1",
+      "--loglevel", "warning",
+      "--logfile", "/dev/null",
+      "--tcp-keepalive", "60"
+    ]
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -63,7 +66,7 @@ services:
       resources:
         limits:
           cpus: "0.15"
-          memory: "80MB"
+          memory: "40MB"
 
 networks:
   backend:

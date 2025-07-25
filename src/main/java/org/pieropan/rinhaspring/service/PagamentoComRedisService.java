@@ -15,13 +15,12 @@ public class PagamentoComRedisService {
         this.redisTemplate = redisTemplate;
     }
 
-    public void salvarPagamento(PagamentoProcessorCompleto pagamentoProcessorCompleto, boolean isDefault) {
+    public void salvarPagamento(PagamentoProcessorCompleto pagamentoProcessorCompleto) {
         Instant createdAt = pagamentoProcessorCompleto.pagamentoProcessorRequest().requestedAt();
 
-        String key = isDefault ? "payments:default" : "payments:fallback";
         long timestamp = createdAt.toEpochMilli();
         String json = pagamentoProcessorCompleto.pagamentoEmJson();
 
-        redisTemplate.opsForZSet().add(key, json, timestamp);
+        redisTemplate.opsForZSet().add("payments:default", json, timestamp);
     }
 }

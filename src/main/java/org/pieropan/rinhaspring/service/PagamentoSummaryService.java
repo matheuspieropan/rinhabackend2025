@@ -19,18 +19,18 @@ public class PagamentoSummaryService {
     }
 
     public PagamentoSummaryResponse summary(Instant from, Instant to) {
-        PagamentoProcessor defaultProcessor = processarResumo("payments:default", from, to);
-        PagamentoProcessor fallbackProcessor = processarResumo("payments:fallback", from, to);
+        PagamentoProcessor defaultProcessor = processarResumo(from, to);
+        PagamentoProcessor fallbackProcessor = new PagamentoProcessor(0, BigDecimal.ZERO);
 
         return new PagamentoSummaryResponse(defaultProcessor, fallbackProcessor);
     }
 
-    private PagamentoProcessor processarResumo(String key, Instant from, Instant to) {
+    private PagamentoProcessor processarResumo(Instant from, Instant to) {
         double minScore = (from != null) ? from.toEpochMilli() : Double.NEGATIVE_INFINITY;
         double maxScore = (to != null) ? to.toEpochMilli() : Double.POSITIVE_INFINITY;
 
         Set<String> registros = redisTemplate.opsForZSet()
-                .rangeByScore(key, minScore, maxScore);
+                .rangeByScore("payments:default", minScore, maxScore);
 
         if (registros == null || registros.isEmpty()) {
             return new PagamentoProcessor(0, BigDecimal.ZERO);

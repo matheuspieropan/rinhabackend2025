@@ -14,10 +14,4 @@ public class PagamentoHttpClientConfig {
                                                         HttpClient httpClient) {
         return new PagamentoProcessorHttpClientImpl(url, httpClient);
     }
-
-    @Bean(name = "pagamentoProcessorFallbackClient")
-    public PagamentoProcessorManualClient fallbackClient(@Value("${pagamento.processor.fallback.url}") String url,
-                                                         HttpClient httpClient) {
-        return new PagamentoProcessorHttpClientImpl(url, httpClient);
-    }
 }

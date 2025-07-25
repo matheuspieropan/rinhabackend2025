@@ -17,16 +17,12 @@ public class PamentoProcessorService {
 
     private final PagamentoProcessorManualClient pagamentoProcessorDefault;
 
-    private final PagamentoProcessorManualClient pagamentoProcessorFallback;
-
     public static Queue<PagamentoProcessorCompleto> pagamentosPendentes = new ConcurrentLinkedQueue<>();
 
     public PamentoProcessorService(PagamentoComRedisService pagamentoComRedisService,
-                                   @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault,
-                                   @Qualifier("pagamentoProcessorFallbackClient") PagamentoProcessorManualClient pagamentoProcessorFallback) {
+                                   @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault) {
         this.pagamentoComRedisService = pagamentoComRedisService;
         this.pagamentoProcessorDefault = pagamentoProcessorDefault;
-        this.pagamentoProcessorFallback = pagamentoProcessorFallback;
     }
 
     public void adicionaNaFila(PagamentoProcessorCompleto completo) {
@@ -49,9 +45,9 @@ public class PamentoProcessorService {
 
     public void pagar(PagamentoProcessorCompleto completo) {
         try {
-            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson(), true);
+            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson());
             if (sucesso) {
-                pagamentoComRedisService.salvarPagamento(completo, true);
+                pagamentoComRedisService.salvarPagamento(completo);
                 return;
             }
         } catch (Exception ignored) {
@@ -59,11 +55,7 @@ public class PamentoProcessorService {
         pagamentosPendentes.offer(completo);
     }
 
-    public boolean enviarRequisicao(String pagamento, boolean processadorDefault) throws IOException, InterruptedException {
-        if (processadorDefault) {
-            return pagamentoProcessorDefault.processaPagamento(pagamento);
-        } else {
-            return pagamentoProcessorFallback.processaPagamento(pagamento);
-        }
+    public boolean enviarRequisicao(String pagamento) throws IOException, InterruptedException {
+        return pagamentoProcessorDefault.processaPagamento(pagamento);
     }
 }

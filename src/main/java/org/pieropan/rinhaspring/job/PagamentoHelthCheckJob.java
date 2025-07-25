@@ -1,7 +1,6 @@
 package org.pieropan.rinhaspring.job;
 
 import org.pieropan.rinhaspring.http.PagamentoProcessorManualClient;
-import org.pieropan.rinhaspring.model.MelhorOpcao;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,7 +13,7 @@ public class PagamentoHelthCheckJob {
 
     private final PagamentoProcessorManualClient pagamentoProcessorDefault;
 
-    public static MelhorOpcao melhorOpcao = new MelhorOpcao(true);
+    public static boolean procesadorDisponivel = true;
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -32,12 +31,12 @@ public class PagamentoHelthCheckJob {
         try {
             boolean processadorDefaultDisponivel = pagamentoProcessorDefault.checaPagamentoRepetido(json);
             if (processadorDefaultDisponivel) {
-                melhorOpcao = new MelhorOpcao(true);
+                procesadorDisponivel = true;
                 return;
             }
         } catch (Exception ignored) {
         }
-        melhorOpcao = null;
+        procesadorDisponivel = false;
     }
 
     private String obtemRegistradoJaSalvo() {
