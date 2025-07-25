@@ -9,12 +9,14 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import static org.pieropan.rinhaspring.job.PagamentoHelthCheckJob.melhorOpcao;
 import static org.pieropan.rinhaspring.service.PamentoProcessorService.pagamentosPendentes;
 
 @Configuration
 public class ProcessaPendenteJob {
 
     private final PamentoProcessorService pamentoProcessorService;
+
     private final ExecutorService executorService;
 
     public ProcessaPendenteJob(PamentoProcessorService pamentoProcessorService,
@@ -23,14 +25,15 @@ public class ProcessaPendenteJob {
         this.executorService = executorService;
     }
 
-    @Scheduled(initialDelay = 5000, fixedDelay = 10)
+    @Scheduled(initialDelay = 100, fixedDelay = 15)
     public void processa() {
-        if (pagamentosPendentes.isEmpty()) {
+        if (pagamentosPendentes.isEmpty() || melhorOpcao == null) {
             return;
         }
 
+        int size = Math.min(pagamentosPendentes.size(), 70);
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < size; i++) {
             futures.add(pagarAsync());
         }
 
@@ -39,12 +42,9 @@ public class ProcessaPendenteJob {
 
     private CompletableFuture<Void> pagarAsync() {
         return CompletableFuture.runAsync(() -> {
-            try {
-                var pagamento = pagamentosPendentes.take();
-                pamentoProcessorService.pagar(pagamento);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            var pagamento = pagamentosPendentes.poll();
+            if (pagamento == null) return;
+            pamentoProcessorService.pagar(pagamento);
         }, executorService);
     }
 }

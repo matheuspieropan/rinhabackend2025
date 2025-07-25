@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.ExecutorService;
 
 @RestController
 @RequestMapping("/payments")
@@ -22,13 +21,9 @@ public class PamentoProcessorController {
 
     private final PamentoProcessorService pamentoProcessorService;
 
-    private final ExecutorService executorService;
-
     public PamentoProcessorController(PagamentoComRedisService pagamentoComRedisService,
-                                      ExecutorService executorService,
                                       @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault,
                                       @Qualifier("pagamentoProcessorFallbackClient") PagamentoProcessorManualClient pagamentoProcessorFallback) {
-        this.executorService = executorService;
         this.pamentoProcessorService = new PamentoProcessorService(
                 pagamentoComRedisService,
                 pagamentoProcessorDefault,
@@ -43,6 +38,6 @@ public class PamentoProcessorController {
         String pagamentoEmJson = pamentoProcessorService.convertObjetoParaJson(pagamentoProcessorRequest);
         PagamentoProcessorCompleto pagamentoProcessorCompleto = new PagamentoProcessorCompleto(pagamentoEmJson, pagamentoProcessorRequest);
 
-        executorService.submit(() -> pamentoProcessorService.pagar(pagamentoProcessorCompleto));
+        pamentoProcessorService.adicionaNaFila(pagamentoProcessorCompleto);
     }
 }

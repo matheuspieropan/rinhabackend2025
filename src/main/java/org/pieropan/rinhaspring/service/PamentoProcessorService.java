@@ -1,17 +1,14 @@
 package org.pieropan.rinhaspring.service;
 
 import org.pieropan.rinhaspring.http.PagamentoProcessorManualClient;
-import org.pieropan.rinhaspring.model.MelhorOpcao;
 import org.pieropan.rinhaspring.model.PagamentoProcessorCompleto;
 import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import static org.pieropan.rinhaspring.job.PagamentoHelthCheckJob.melhorOpcao;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
 public class PamentoProcessorService {
@@ -22,7 +19,7 @@ public class PamentoProcessorService {
 
     private final PagamentoProcessorManualClient pagamentoProcessorFallback;
 
-    public static BlockingQueue<PagamentoProcessorCompleto> pagamentosPendentes = new LinkedBlockingQueue<>();
+    public static Queue<PagamentoProcessorCompleto> pagamentosPendentes = new ConcurrentLinkedQueue<>();
 
     public PamentoProcessorService(PagamentoComRedisService pagamentoComRedisService,
                                    @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault,
@@ -30,6 +27,10 @@ public class PamentoProcessorService {
         this.pagamentoComRedisService = pagamentoComRedisService;
         this.pagamentoProcessorDefault = pagamentoProcessorDefault;
         this.pagamentoProcessorFallback = pagamentoProcessorFallback;
+    }
+
+    public void adicionaNaFila(PagamentoProcessorCompleto completo) {
+        pagamentosPendentes.offer(completo);
     }
 
     public String convertObjetoParaJson(PagamentoProcessorRequest request) {
@@ -47,17 +48,10 @@ public class PamentoProcessorService {
     }
 
     public void pagar(PagamentoProcessorCompleto completo) {
-        MelhorOpcao melhorOpcaoAtual = melhorOpcao;
-
-        if (melhorOpcaoAtual == null) {
-            pagamentosPendentes.offer(completo);
-            return;
-        }
-
         try {
-            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson(), melhorOpcaoAtual.processadorDefault());
+            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson(), true);
             if (sucesso) {
-                pagamentoComRedisService.salvarPagamento(completo, melhorOpcaoAtual.processadorDefault());
+                pagamentoComRedisService.salvarPagamento(completo, true);
                 return;
             }
         } catch (Exception ignored) {

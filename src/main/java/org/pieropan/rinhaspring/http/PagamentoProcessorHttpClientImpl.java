@@ -25,17 +25,14 @@ public class PagamentoProcessorHttpClientImpl implements PagamentoProcessorManua
 
     @Override
     public boolean processaPagamento(String pagamento) throws IOException, InterruptedException {
-        HttpRequest httpRequest = HttpRequest.newBuilder().
-                timeout(Duration.ofMillis(500)).
-                uri(URI.create(baseUrl + "/payments")).POST(ofString(pagamento)).
-                header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).
-                build();
+        HttpResponse<Void> response = criaHttpResponse(pagamento);
+        return response.statusCode() == 200 || response.statusCode() == 422;
+    }
 
-        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            System.out.println("Status code: " + response.statusCode());
-        }
-        return response.statusCode() == 200;
+    @Override
+    public boolean checaPagamentoRepetido(String request) throws IOException, InterruptedException {
+        HttpResponse<Void> httpResponse = criaHttpResponse(request);
+        return httpResponse.statusCode() == 422;
     }
 
     @Override
@@ -50,6 +47,16 @@ public class PagamentoProcessorHttpClientImpl implements PagamentoProcessorManua
         String body = response.body();
 
         return getHealthResponse(body);
+    }
+
+    private HttpResponse<Void> criaHttpResponse(String pagamento) throws IOException, InterruptedException {
+        HttpRequest httpRequest = HttpRequest.newBuilder().
+                timeout(Duration.ofMillis(500)).
+                uri(URI.create(baseUrl + "/payments")).POST(ofString(pagamento)).
+                header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).
+                build();
+
+        return httpClient.send(httpRequest, HttpResponse.BodyHandlers.discarding());
     }
 
     private HealthResponse getHealthResponse(String body) {
