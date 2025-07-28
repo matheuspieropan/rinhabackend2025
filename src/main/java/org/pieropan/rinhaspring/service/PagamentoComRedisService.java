@@ -22,7 +22,7 @@ public class PagamentoComRedisService {
     }
 
     private Instant extrairCreatedAt(String json) {
-        String chave = "\"createdAt\":\"";
+        String chave = "\"requestedAt\":\"";
         int inicio = json.indexOf(chave);
         if (inicio == -1) {
             throw new IllegalArgumentException("Campo createdAt não encontrado no JSON: " + json);

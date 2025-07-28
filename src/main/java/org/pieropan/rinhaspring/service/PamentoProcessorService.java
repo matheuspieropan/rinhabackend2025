@@ -34,7 +34,7 @@ public class PamentoProcessorService {
 
         if (jsonOriginal.endsWith("}")) {
             return jsonOriginal.substring(0, jsonOriginal.length() - 1)
-                    + ",\"createdAt\":\"" + agora.toString() + "\"}";
+                    + ",\"requestedAt\":\"" + agora.toString() + "\"}";
         } else {
             throw new IllegalArgumentException("JSON inválido: " + jsonOriginal);
         }
