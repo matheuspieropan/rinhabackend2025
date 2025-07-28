@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -27,13 +28,18 @@ public class PamentoProcessorController {
     }
 
     @PostMapping
-    public void pagar(@RequestBody PagamentoRequest pagamentoRequest) {
-        PagamentoProcessorRequest pagamentoProcessorRequest = new PagamentoProcessorRequest(
-                pagamentoRequest.correlationId(), pagamentoRequest.amount(), Instant.now().truncatedTo(ChronoUnit.SECONDS));
+    public Mono<Void> pagar(@RequestBody Mono<PagamentoRequest> pagamentoRequestMono) {
+        return pagamentoRequestMono
+                .map(request -> {
+                    var pagamentoProcessorRequest = new PagamentoProcessorRequest(
+                            request.correlationId(),
+                            request.amount(),
+                            Instant.now().truncatedTo(ChronoUnit.SECONDS)
+                    );
 
-        String pagamentoEmJson = pamentoProcessorService.convertObjetoParaJson(pagamentoProcessorRequest);
-        PagamentoProcessorCompleto pagamentoProcessorCompleto = new PagamentoProcessorCompleto(pagamentoEmJson, pagamentoProcessorRequest);
-
-        pamentoProcessorService.adicionaNaFila(pagamentoProcessorCompleto);
+                    return new PagamentoProcessorCompleto(pamentoProcessorService.convertObjetoParaJson(pagamentoProcessorRequest), pagamentoProcessorRequest
+                    );
+                })
+                .flatMap(pamentoProcessorService::adicionaNaFila);
     }
 }

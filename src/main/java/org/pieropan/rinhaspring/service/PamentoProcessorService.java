@@ -5,6 +5,7 @@ import org.pieropan.rinhaspring.model.PagamentoProcessorCompleto;
 import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.Queue;
@@ -25,8 +26,9 @@ public class PamentoProcessorService {
         this.pagamentoProcessorDefault = pagamentoProcessorDefault;
     }
 
-    public void adicionaNaFila(PagamentoProcessorCompleto completo) {
-        pagamentosPendentes.offer(completo);
+    public Mono<Void> adicionaNaFila(PagamentoProcessorCompleto completo) {
+        boolean adicionado = pagamentosPendentes.offer(completo);
+        return adicionado ? Mono.empty() : Mono.error(new IllegalStateException());
     }
 
     public String convertObjetoParaJson(PagamentoProcessorRequest request) {
@@ -43,16 +45,21 @@ public class PamentoProcessorService {
         return value.replace("\"", "\\\"");
     }
 
-    public void pagar(PagamentoProcessorCompleto completo) {
-        try {
-            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson());
-            if (sucesso) {
-                pagamentoComRedisService.salvarPagamento(completo);
-                return;
-            }
-        } catch (Exception ignored) {
-        }
-        pagamentosPendentes.offer(completo);
+    public Mono<Void> pagar(PagamentoProcessorCompleto completo) {
+        return Mono.fromCallable(() -> enviarRequisicao(completo.pagamentoEmJson()))
+                .flatMap(sucesso -> {
+                    if (sucesso) {
+                        return pagamentoComRedisService.salvarPagamento(completo)
+                                .then();
+                    } else {
+                        pagamentosPendentes.offer(completo);
+                        return Mono.empty();
+                    }
+                })
+                .onErrorResume(e -> {
+                    pagamentosPendentes.offer(completo);
+                    return Mono.empty();
+                });
     }
 
     public boolean enviarRequisicao(String pagamento) throws IOException, InterruptedException {

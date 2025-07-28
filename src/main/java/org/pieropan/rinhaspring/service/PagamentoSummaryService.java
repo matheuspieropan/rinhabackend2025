@@ -2,44 +2,44 @@ package org.pieropan.rinhaspring.service;
 
 import org.pieropan.rinhaspring.model.PagamentoProcessor;
 import org.pieropan.rinhaspring.model.PagamentoSummaryResponse;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.domain.Range;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Set;
 
 @Service
 public class PagamentoSummaryService {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
+    private static final BigDecimal VALOR_UNITARIO = BigDecimal.valueOf(19.9);
 
-    public PagamentoSummaryService(RedisTemplate<String, String> redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    public PagamentoSummaryService(ReactiveRedisTemplate<String, String> reactiveRedisTemplate) {
+        this.reactiveRedisTemplate = reactiveRedisTemplate;
     }
 
-    public PagamentoSummaryResponse summary(Instant from, Instant to) {
-        PagamentoProcessor defaultProcessor = processarResumo(from, to);
-        PagamentoProcessor fallbackProcessor = new PagamentoProcessor(0, BigDecimal.ZERO);
-
-        return new PagamentoSummaryResponse(defaultProcessor, fallbackProcessor);
+    public Mono<PagamentoSummaryResponse> summary(Instant from, Instant to) {
+        return processarResumo("payments:default", from, to)
+                .zipWith(processarResumo("payments:fallback", from, to))
+                .map(tuple -> new PagamentoSummaryResponse(tuple.getT1(), tuple.getT2()));
     }
 
-    private PagamentoProcessor processarResumo(Instant from, Instant to) {
+    private Mono<PagamentoProcessor> processarResumo(String key, Instant from, Instant to) {
         double minScore = (from != null) ? from.toEpochMilli() : Double.NEGATIVE_INFINITY;
         double maxScore = (to != null) ? to.toEpochMilli() : Double.POSITIVE_INFINITY;
+        Range<Double> range = Range.open(minScore, maxScore);
 
-        Set<String> registros = redisTemplate.opsForZSet()
-                .rangeByScore("payments:default", minScore, maxScore);
+        Flux<String> registros = reactiveRedisTemplate.opsForZSet()
+                .rangeByScore(key, range);
 
-        if (registros == null || registros.isEmpty()) {
-            return new PagamentoProcessor(0, BigDecimal.ZERO);
-        }
-
-        int totalRequests = registros.size();
-        BigDecimal valorUnitario = BigDecimal.valueOf(19.9);
-        BigDecimal totalAmount = valorUnitario.multiply(BigDecimal.valueOf(totalRequests));
-
-        return new PagamentoProcessor(totalRequests, totalAmount);
+        return registros.count()
+                .map(totalRequests -> {
+                    BigDecimal totalAmount = VALOR_UNITARIO.multiply(BigDecimal.valueOf(totalRequests));
+                    return new PagamentoProcessor(totalRequests.intValue(), totalAmount);
+                })
+                .defaultIfEmpty(new PagamentoProcessor(0, BigDecimal.ZERO));
     }
 }

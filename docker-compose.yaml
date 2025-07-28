@@ -19,7 +19,7 @@ services:
           memory: "30MB"
 
   api1: &api
-    image: matheuspieropan/rinhabackend2025:achoquefoi
+    image: matheuspieropan/rinhabackend2025:reativo
     depends_on:
       redis:
         condition: service_healthy
