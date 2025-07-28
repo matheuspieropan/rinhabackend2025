@@ -39,6 +39,6 @@ public class PagamentoSummaryController {
                 summary.defaultValue().totalAmount(),
                 summary.fallback().totalRequests(),
                 summary.fallback().totalAmount()
-        ).replace("\n", "").replace("    ", "");
+        );
     }
 }
