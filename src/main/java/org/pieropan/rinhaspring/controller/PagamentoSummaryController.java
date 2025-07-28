@@ -19,9 +19,26 @@ public class PagamentoSummaryController {
         this.pagamentoSummaryService = pagamentoSummaryService;
     }
 
-    @GetMapping
-    public PagamentoSummaryResponse summary(@RequestParam(value = "from", required = false) Instant from,
-                                            @RequestParam(value = "to", required = false) Instant to) {
-        return pagamentoSummaryService.summary(from, to);
+    @GetMapping(produces = "application/json")
+    public String summary(@RequestParam(value = "from", required = false) Instant from,
+                          @RequestParam(value = "to", required = false) Instant to) {
+        PagamentoSummaryResponse summary = pagamentoSummaryService.summary(from, to);
+        return """
+                {
+                    "default": {
+                        "totalRequests": %d,
+                        "totalAmount": %s
+                    },
+                    "fallback": {
+                        "totalRequests": %d,
+                        "totalAmount": %s
+                    }
+                }
+                """.formatted(
+                summary.defaultValue().totalRequests(),
+                summary.defaultValue().totalAmount(),
+                summary.fallback().totalRequests(),
+                summary.fallback().totalAmount()
+        ).replace("\n", "").replace("    ", "");
     }
 }
