@@ -23,7 +23,7 @@ public class PagamentoHelthCheckJob {
         this.redisTemplate = redisTemplate;
     }
 
-    @Scheduled(initialDelay = 5000, fixedDelay = 15)
+    @Scheduled(initialDelay = 5000, fixedDelay = 150)
     public void checaProcessadorDefault() {
         String json = obtemRegistradoJaSalvo();
         if (json == null) return;

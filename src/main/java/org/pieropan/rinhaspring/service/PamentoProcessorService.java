@@ -1,12 +1,12 @@
 package org.pieropan.rinhaspring.service;
 
 import org.pieropan.rinhaspring.http.PagamentoProcessorManualClient;
-import org.pieropan.rinhaspring.model.PagamentoProcessorCompleto;
-import org.pieropan.rinhaspring.model.PagamentoProcessorRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -17,7 +17,7 @@ public class PamentoProcessorService {
 
     private final PagamentoProcessorManualClient pagamentoProcessorDefault;
 
-    public static Queue<PagamentoProcessorCompleto> pagamentosPendentes = new ConcurrentLinkedQueue<>();
+    public static Queue<String> pagamentosPendentes = new ConcurrentLinkedQueue<>();
 
     public PamentoProcessorService(PagamentoComRedisService pagamentoComRedisService,
                                    @Qualifier("pagamentoProcessorDefaultClient") PagamentoProcessorManualClient pagamentoProcessorDefault) {
@@ -25,34 +25,31 @@ public class PamentoProcessorService {
         this.pagamentoProcessorDefault = pagamentoProcessorDefault;
     }
 
-    public void adicionaNaFila(PagamentoProcessorCompleto completo) {
+    public void adicionaNaFila(String completo) {
         pagamentosPendentes.offer(completo);
     }
 
-    public String convertObjetoParaJson(PagamentoProcessorRequest request) {
-        return """
-                {
-                  "correlationId": "%s",
-                  "amount": %s,
-                  "requestedAt": "%s"
-                }
-                """.formatted(escape(request.correlationId()), request.amount().toPlainString(), request.requestedAt().toString()).replace("\n", "").replace("  ", "");
+    public String adicionaTimestamp(String jsonOriginal) {
+        Instant agora = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        if (jsonOriginal.endsWith("}")) {
+            return jsonOriginal.substring(0, jsonOriginal.length() - 1)
+                    + ",\"createdAt\":\"" + agora.toString() + "\"}";
+        } else {
+            throw new IllegalArgumentException("JSON inválido: " + jsonOriginal);
+        }
     }
 
-    private String escape(String value) {
-        return value.replace("\"", "\\\"");
-    }
-
-    public void pagar(PagamentoProcessorCompleto completo) {
+    public void pagar(String json) {
         try {
-            boolean sucesso = enviarRequisicao(completo.pagamentoEmJson());
+            boolean sucesso = enviarRequisicao(json);
             if (sucesso) {
-                pagamentoComRedisService.salvarPagamento(completo);
+                pagamentoComRedisService.salvarPagamento(json);
                 return;
             }
         } catch (Exception ignored) {
         }
-        pagamentosPendentes.offer(completo);
+        pagamentosPendentes.offer(json);
     }
 
     public boolean enviarRequisicao(String pagamento) throws IOException, InterruptedException {

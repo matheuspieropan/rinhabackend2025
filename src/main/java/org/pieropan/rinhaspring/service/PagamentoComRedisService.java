@@ -1,6 +1,5 @@
 package org.pieropan.rinhaspring.service;
 
-import org.pieropan.rinhaspring.model.PagamentoProcessorCompleto;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,12 +14,27 @@ public class PagamentoComRedisService {
         this.redisTemplate = redisTemplate;
     }
 
-    public void salvarPagamento(PagamentoProcessorCompleto pagamentoProcessorCompleto) {
-        Instant createdAt = pagamentoProcessorCompleto.pagamentoProcessorRequest().requestedAt();
-
+    public void salvarPagamento(String json) {
+        Instant createdAt = extrairCreatedAt(json);
         long timestamp = createdAt.toEpochMilli();
-        String json = pagamentoProcessorCompleto.pagamentoEmJson();
 
         redisTemplate.opsForZSet().add("payments:default", json, timestamp);
+    }
+
+    private Instant extrairCreatedAt(String json) {
+        String chave = "\"createdAt\":\"";
+        int inicio = json.indexOf(chave);
+        if (inicio == -1) {
+            throw new IllegalArgumentException("Campo createdAt não encontrado no JSON: " + json);
+        }
+
+        inicio += chave.length();
+        int fim = json.indexOf("\"", inicio);
+        if (fim == -1) {
+            throw new IllegalArgumentException("Formato inválido de createdAt no JSON: " + json);
+        }
+
+        String valor = json.substring(inicio, fim);
+        return Instant.parse(valor);
     }
 }
